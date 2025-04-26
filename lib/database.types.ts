@@ -1,0 +1,217 @@
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+
+export interface Database {
+  public: {
+    Tables: {
+      profiles: {
+        Row: {
+          id: string
+          email: string
+          full_name: string | null
+          role: string
+          risk_score: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          email: string
+          full_name?: string | null
+          role?: string
+          risk_score?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          email?: string
+          full_name?: string | null
+          role?: string
+          risk_score?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      keystroke_logs: {
+        Row: {
+          id: string
+          user_id: string
+          application: string
+          window_title: string | null
+          keys: string
+          encrypted_data: string | null
+          timestamp: string
+          ip_address: string | null
+          device_info: Json | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          application: string
+          window_title?: string | null
+          keys: string
+          encrypted_data?: string | null
+          timestamp?: string
+          ip_address?: string | null
+          device_info?: Json | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          application?: string
+          window_title?: string | null
+          keys?: string
+          encrypted_data?: string | null
+          timestamp?: string
+          ip_address?: string | null
+          device_info?: Json | null
+        }
+      }
+      sessions: {
+        Row: {
+          id: string
+          user_id: string
+          start_time: string
+          end_time: string | null
+          active_time: number
+          device_info: Json | null
+          ip_address: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          start_time?: string
+          end_time?: string | null
+          active_time?: number
+          device_info?: Json | null
+          ip_address?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          start_time?: string
+          end_time?: string | null
+          active_time?: number
+          device_info?: Json | null
+          ip_address?: string | null
+        }
+      }
+      anomalies: {
+        Row: {
+          id: string
+          user_id: string
+          session_id: string | null
+          description: string
+          severity: string
+          detected_at: string
+          resolved: boolean
+          resolved_at: string | null
+          resolved_by: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          session_id?: string | null
+          description: string
+          severity?: string
+          detected_at?: string
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          session_id?: string | null
+          description?: string
+          severity?: string
+          detected_at?: string
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+        }
+      }
+      organizations: {
+        Row: {
+          id: string
+          name: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      organization_members: {
+        Row: {
+          id: string
+          organization_id: string
+          user_id: string
+          role: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          user_id: string
+          role?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          user_id?: string
+          role?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      settings: {
+        Row: {
+          id: string
+          organization_id: string
+          key: string
+          value: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          key: string
+          value: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          key?: string
+          value?: Json
+          created_at?: string
+          updated_at?: string
+        }
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+  }
+}
