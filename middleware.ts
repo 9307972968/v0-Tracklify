@@ -1,22 +1,20 @@
-import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs"
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
-  const supabase = createMiddlewareClient({ req, res })
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  // Check for mock authentication cookie
+  const mockAuthCookie = req.cookies.get("mockAuthState")
+  const isAuthenticated = mockAuthCookie !== undefined
 
   // If user is signed in and the current path is / or /login or /signup, redirect to /dashboard
-  if (session && ["/login", "/signup", "/"].includes(req.nextUrl.pathname)) {
+  if (isAuthenticated && ["/login", "/signup", "/"].includes(req.nextUrl.pathname)) {
     return NextResponse.redirect(new URL("/dashboard", req.url))
   }
 
   // If user is not signed in and the current path is /dashboard, redirect to /login
-  if (!session && req.nextUrl.pathname.startsWith("/dashboard")) {
+  if (!isAuthenticated && req.nextUrl.pathname.startsWith("/dashboard")) {
     return NextResponse.redirect(new URL("/login", req.url))
   }
 

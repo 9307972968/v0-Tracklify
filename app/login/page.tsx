@@ -5,13 +5,13 @@ import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Shield } from "lucide-react"
+import { Shield, AlertCircle } from "lucide-react"
+import { setMockSession } from "@/lib/auth/mock-auth"
 
 export default function Login() {
   const [email, setEmail] = useState("")
@@ -19,7 +19,6 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const supabase = createClient()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,51 +26,38 @@ export default function Login() {
     setError(null)
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      if (error) {
-        setError(error.message)
+      // Basic validation
+      if (!email) {
+        setError("Please enter your email address")
         return
       }
 
+      if (!password) {
+        setError("Please enter your password")
+        return
+      }
+
+      // Simulate authentication delay
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      // Set mock session
+      setMockSession()
+
+      // Redirect to dashboard
       router.push("/dashboard")
       router.refresh()
     } catch (err) {
-      setError("An unexpected error occurred")
-      console.error(err)
+      console.error("Login error:", err)
+      setError("An unexpected error occurred. Please try again.")
     } finally {
       setLoading(false)
     }
   }
 
-  const handleMagicLink = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
-
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      })
-
-      if (error) {
-        setError(error.message)
-        return
-      }
-
-      setError("Check your email for the login link")
-    } catch (err) {
-      setError("An unexpected error occurred")
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
+  const handleDemoAccess = () => {
+    setMockSession()
+    router.push("/dashboard")
+    router.refresh()
   }
 
   return (
@@ -87,7 +73,8 @@ export default function Login() {
         </CardHeader>
         <CardContent className="space-y-4">
           {error && (
-            <Alert variant={error.includes("Check your email") ? "default" : "destructive"}>
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
@@ -100,7 +87,6 @@ export default function Login() {
                 placeholder="name@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                required
               />
             </div>
             <div className="space-y-2">
@@ -110,13 +96,7 @@ export default function Login() {
                   Forgot password?
                 </Link>
               </div>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Logging in..." : "Log in"}
@@ -127,11 +107,11 @@ export default function Login() {
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+              <span className="bg-background px-2 text-muted-foreground">Or</span>
             </div>
           </div>
-          <Button variant="outline" className="w-full" onClick={handleMagicLink} disabled={loading}>
-            {loading ? "Sending..." : "Magic Link"}
+          <Button variant="secondary" className="w-full" onClick={handleDemoAccess}>
+            Demo Access (Skip Login)
           </Button>
         </CardContent>
         <CardFooter>

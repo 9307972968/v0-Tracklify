@@ -208,12 +208,7 @@ export interface Database {
       [_ in never]: never
     }
     Functions: {
-      purge_old_logs: {
-        Args: {
-          days: number
-        }
-        Returns: undefined
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
