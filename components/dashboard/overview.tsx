@@ -1,39 +1,35 @@
 "use client"
 
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts"
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts"
 
 const data = [
   {
-    name: "00:00",
-    total: 45,
+    name: "Mon",
+    total: 4000,
   },
   {
-    name: "03:00",
-    total: 12,
+    name: "Tue",
+    total: 3000,
   },
   {
-    name: "06:00",
-    total: 5,
+    name: "Wed",
+    total: 2000,
   },
   {
-    name: "09:00",
-    total: 75,
+    name: "Thu",
+    total: 2780,
   },
   {
-    name: "12:00",
-    total: 120,
+    name: "Fri",
+    total: 1890,
   },
   {
-    name: "15:00",
-    total: 150,
+    name: "Sat",
+    total: 2390,
   },
   {
-    name: "18:00",
-    total: 80,
-  },
-  {
-    name: "21:00",
-    total: 35,
+    name: "Sun",
+    total: 3490,
   },
 ]
 
@@ -43,7 +39,15 @@ export function Overview() {
       <BarChart data={data}>
         <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
         <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
-        <Bar dataKey="total" fill="currentColor" radius={[4, 4, 0, 0]} className="fill-primary" />
+        <Tooltip
+          cursor={{ fill: "rgba(0, 0, 0, 0.1)" }}
+          contentStyle={{
+            backgroundColor: "rgba(255, 255, 255, 0.8)",
+            border: "1px solid #ccc",
+            borderRadius: "4px",
+          }}
+        />
+        <Bar dataKey="total" fill="#3B82F6" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )

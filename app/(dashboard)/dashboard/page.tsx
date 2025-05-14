@@ -4,6 +4,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Overview } from "@/components/dashboard/overview"
 import { RecentActivity } from "@/components/dashboard/recent-activity"
 import { UserStats } from "@/components/dashboard/user-stats"
+import { AgentStatus } from "@/components/dashboard/agent-status"
+import { Suspense } from "react"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export default async function DashboardPage() {
   const supabase = createClient()
@@ -27,6 +30,10 @@ export default async function DashboardPage() {
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">Welcome back! Here's an overview of your system monitoring.</p>
       </div>
+
+      <Suspense fallback={<Skeleton className="h-[100px] w-full" />}>
+        <AgentStatus userId={user?.id} />
+      </Suspense>
 
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>

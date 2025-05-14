@@ -3,8 +3,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Suspense } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AnomaliesList } from "@/components/dashboard/anomalies-list"
+import { createClient } from "@/lib/supabase/server"
+import { redirect } from "next/navigation"
 
-export default function AnomaliesPage() {
+export default async function AnomaliesPage() {
+  const supabase = createClient()
+
+  // Check if user is authenticated
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  // If no user, redirect to login
+  if (!user) {
+    redirect("/login")
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div>

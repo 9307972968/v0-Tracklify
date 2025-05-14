@@ -1,44 +1,49 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { useAuth } from "@/context/SupabaseProvider"
+import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Shield, AlertCircle } from "lucide-react"
+import { Shield, AlertCircle, CheckCircle } from "lucide-react"
 import { toast } from "sonner"
 
-export default function SignupPage() {
-  const [email, setEmail] = useState("")
+export default function UpdatePasswordPage() {
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
-  const [fullName, setFullName] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const router = useRouter()
-  const { signUp, isLoading } = useAuth()
+  const supabase = createClient()
 
-  const handleSignup = async (e: React.FormEvent) => {
+  useEffect(() => {
+    // Check if we have a session when the component mounts
+    const checkSession = async () => {
+      const { data, error } = await supabase.auth.getSession()
+      if (error || !data.session) {
+        toast.error("Invalid or expired session. Please try resetting your password again.")
+        router.push("/reset-password")
+      }
+    }
+
+    checkSession()
+  }, [router, supabase.auth])
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
     try {
       // Basic validation
-      if (!email) {
-        setError("Please enter your email address")
-        setLoading(false)
-        return
-      }
-
       if (!password) {
-        setError("Please enter a password")
+        setError("Please enter a new password")
         setLoading(false)
         return
       }
@@ -55,22 +60,26 @@ export default function SignupPage() {
         return
       }
 
-      const { error: signUpError } = await signUp(email, password, {
-        full_name: fullName,
-        role: "user",
+      const { error: updateError } = await supabase.auth.updateUser({
+        password,
       })
 
-      if (signUpError) {
-        console.error("Sign up error:", signUpError)
-        setError(signUpError.message || "Failed to create account")
-        toast.error("Signup failed: " + (signUpError.message || "Failed to create account"))
+      if (updateError) {
+        console.error("Update password error:", updateError)
+        setError(updateError.message || "Failed to update password")
+        toast.error("Failed to update password")
         return
       }
 
       setSuccess(true)
-      toast.success("Account created successfully! Please check your email for verification.")
+      toast.success("Password updated successfully")
+
+      // Redirect to dashboard after a short delay
+      setTimeout(() => {
+        router.push("/dashboard")
+      }, 2000)
     } catch (err) {
-      console.error("Signup error:", err)
+      console.error("Update password error:", err)
       setError("An unexpected error occurred. Please try again.")
       toast.error("An unexpected error occurred")
     } finally {
@@ -86,8 +95,8 @@ export default function SignupPage() {
             <Shield className="h-6 w-6" />
             <span className="text-xl font-bold">Tracklify</span>
           </div>
-          <CardTitle className="text-2xl">Create an account</CardTitle>
-          <CardDescription>Enter your details to create your Tracklify account</CardDescription>
+          <CardTitle className="text-2xl">Update Password</CardTitle>
+          <CardDescription>Enter your new password</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {error && (
@@ -99,35 +108,15 @@ export default function SignupPage() {
 
           {success ? (
             <Alert>
+              <CheckCircle className="h-4 w-4" />
               <AlertDescription>
-                Account created successfully! Please check your email for verification.
+                Password updated successfully! You will be redirected to the dashboard.
               </AlertDescription>
             </Alert>
           ) : (
-            <form onSubmit={handleSignup} className="space-y-4">
+            <form onSubmit={handleUpdatePassword} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input
-                  id="fullName"
-                  type="text"
-                  placeholder="John Doe"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="name@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">New Password</Label>
                 <Input
                   id="password"
                   type="password"
@@ -138,7 +127,7 @@ export default function SignupPage() {
                 <p className="text-xs text-muted-foreground">Password must be at least 8 characters long</p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
                 <Input
                   id="confirmPassword"
                   type="password"
@@ -147,17 +136,17 @@ export default function SignupPage() {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={loading || isLoading}>
-                {loading || isLoading ? "Creating account..." : "Sign up"}
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Updating..." : "Update Password"}
               </Button>
             </form>
           )}
         </CardContent>
         <CardFooter>
           <p className="text-center text-sm text-muted-foreground w-full">
-            Already have an account?{" "}
+            Remember your password?{" "}
             <Link href="/login" className="text-primary hover:underline">
-              Log in
+              Back to login
             </Link>
           </p>
         </CardFooter>

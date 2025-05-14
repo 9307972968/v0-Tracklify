@@ -1,73 +1,91 @@
-import type { Metadata } from "next"
-import { LiveLogs } from "@/components/dashboard/live-logs"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Suspense } from "react"
+import { Skeleton } from "@/components/ui/skeleton"
+import { LiveLogs } from "@/components/dashboard/live-logs"
+import { createClient } from "@/lib/supabase/server"
+import { redirect } from "next/navigation"
 
-export const metadata: Metadata = {
-  title: "Logs | Tracklify",
-  description: "Monitor user activity with real-time keystroke logs",
-}
+export default async function LogsPage() {
+  const supabase = createClient()
 
-export default function LogsPage() {
+  // Check if user is authenticated
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  // If no user, redirect to login
+  if (!user) {
+    redirect("/login")
+  }
+
   return (
-    <div className="flex flex-col">
-      <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-        <div className="flex items-center justify-between space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight">Logs</h2>
-        </div>
-        <Tabs defaultValue="all" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="critical">Critical</TabsTrigger>
-            <TabsTrigger value="warning">Warning</TabsTrigger>
-            <TabsTrigger value="info">Info</TabsTrigger>
-          </TabsList>
-          <TabsContent value="all" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>All Logs</CardTitle>
-                <CardDescription>View all keystroke logs across your monitored systems.</CardDescription>
-              </CardHeader>
-              <CardContent className="p-4">
-                <LiveLogs />
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="critical" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Critical Logs</CardTitle>
-                <CardDescription>View logs flagged as critical security concerns.</CardDescription>
-              </CardHeader>
-              <CardContent className="p-4">
-                <LiveLogs severity="critical" />
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="warning" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Warning Logs</CardTitle>
-                <CardDescription>View logs that may indicate potential security issues.</CardDescription>
-              </CardHeader>
-              <CardContent className="p-4">
-                <LiveLogs severity="warning" />
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="info" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Info Logs</CardTitle>
-                <CardDescription>View regular activity logs with no security concerns.</CardDescription>
-              </CardHeader>
-              <CardContent className="p-4">
-                <LiveLogs severity="info" />
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+    <div className="flex flex-col gap-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Live Logs</h1>
+        <p className="text-muted-foreground">Real-time monitoring of system activity.</p>
       </div>
+
+      <Tabs defaultValue="all" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="all">All Logs</TabsTrigger>
+          <TabsTrigger value="info">Info</TabsTrigger>
+          <TabsTrigger value="warning">Warning</TabsTrigger>
+          <TabsTrigger value="error">Error</TabsTrigger>
+        </TabsList>
+        <TabsContent value="all" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>All Logs</CardTitle>
+              <CardDescription>View all system logs in real-time</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Suspense fallback={<Skeleton className="h-[400px] w-full" />}>
+                <LiveLogs />
+              </Suspense>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="info" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Info Logs</CardTitle>
+              <CardDescription>View informational logs</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Suspense fallback={<Skeleton className="h-[400px] w-full" />}>
+                <LiveLogs severity="info" />
+              </Suspense>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="warning" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Warning Logs</CardTitle>
+              <CardDescription>View warning logs that may require attention</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Suspense fallback={<Skeleton className="h-[400px] w-full" />}>
+                <LiveLogs severity="warning" />
+              </Suspense>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="error" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Error Logs</CardTitle>
+              <CardDescription>View error logs that require immediate attention</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Suspense fallback={<Skeleton className="h-[400px] w-full" />}>
+                <LiveLogs severity="critical" />
+              </Suspense>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

@@ -4,7 +4,9 @@ import { useState, useEffect } from "react"
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, Legend } from "recharts"
 import { createClient } from "@/lib/supabase/client"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { InfoIcon } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { InfoIcon, Download } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
 
 interface TypingData {
   date: string
@@ -27,6 +29,7 @@ export function TypingSpeedChart() {
   const [loading, setLoading] = useState(true)
   const [usingSampleData, setUsingSampleData] = useState(false)
   const supabase = createClient()
+  const { toast } = useToast()
 
   // Fetch users
   useEffect(() => {
@@ -133,6 +136,54 @@ export function TypingSpeedChart() {
     })
   }
 
+  const exportChart = () => {
+    try {
+      // Create CSV content
+      const headers = [
+        "Date",
+        ...selectedUsers.map((userId) => {
+          const user = users.find((u) => u.id === userId)
+          return user ? user.email : userId
+        }),
+      ]
+
+      const csvContent = [
+        headers.join(","),
+        ...data.map((item) => {
+          return [
+            item.date,
+            ...selectedUsers.map((userId) => {
+              const userEmail = users.find((u) => u.id === userId)?.email || userId
+              return item[userEmail]
+            }),
+          ].join(",")
+        }),
+      ].join("\n")
+
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.setAttribute("href", url)
+      link.setAttribute("download", `typing_speed_${new Date().toISOString().split("T")[0]}.csv`)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      toast({
+        title: "Export Successful",
+        description: "Chart data has been exported to CSV",
+      })
+    } catch (error) {
+      console.error("Error exporting chart:", error)
+      toast({
+        title: "Export Failed",
+        description: "Failed to export chart data",
+        variant: "destructive",
+      })
+    }
+  }
+
   const colors = ["#000000", "#3B82F6", "#10B981", "#F59E0B", "#EF4444"]
 
   return (
@@ -146,24 +197,30 @@ export function TypingSpeedChart() {
         </Alert>
       )}
 
-      <div className="flex flex-wrap gap-2">
-        {users.map((user, index) => (
-          <button
-            key={user.id}
-            onClick={() => handleUserSelection(user.id)}
-            className={`px-3 py-1 text-xs rounded-full transition-colors ${
-              selectedUsers.includes(user.id)
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-secondary-foreground"
-            }`}
-            style={{
-              borderColor: selectedUsers.includes(user.id) ? colors[index % colors.length] : undefined,
-              borderWidth: selectedUsers.includes(user.id) ? "1px" : undefined,
-            }}
-          >
-            {user.email.split("@")[0]}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap gap-2">
+          {users.map((user, index) => (
+            <button
+              key={user.id}
+              onClick={() => handleUserSelection(user.id)}
+              className={`px-3 py-1 text-xs rounded-full transition-colors ${
+                selectedUsers.includes(user.id)
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-secondary-foreground"
+              }`}
+              style={{
+                borderColor: selectedUsers.includes(user.id) ? colors[index % colors.length] : undefined,
+                borderWidth: selectedUsers.includes(user.id) ? "1px" : undefined,
+              }}
+            >
+              {user.email.split("@")[0]}
+            </button>
+          ))}
+        </div>
+        <Button variant="outline" size="sm" onClick={exportChart} className="flex items-center gap-1">
+          <Download className="h-4 w-4" />
+          Export CSV
+        </Button>
       </div>
 
       <div className="h-[350px] w-full">

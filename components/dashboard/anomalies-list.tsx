@@ -17,11 +17,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Flag, AlertTriangle, CheckCircle, Eye } from "lucide-react"
+import { Flag, AlertTriangle, CheckCircle, Eye, Download } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
+import { toast } from "sonner"
+import { formatDistanceToNow } from "date-fns"
 
 interface Anomaly {
   id: string
@@ -34,6 +36,8 @@ interface Anomaly {
   resolved_by: string | null
   user_email?: string
   user_name?: string
+  device?: string
+  type?: string
 }
 
 interface AnomaliesListProps {
@@ -45,7 +49,6 @@ export function AnomaliesList({ severity }: AnomaliesListProps) {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState<string>("newest")
-  const [users, setUsers] = useState<Record<string, { email: string; name: string }>>({})
   const supabase = createClient()
 
   // Fetch anomalies
@@ -54,137 +57,106 @@ export function AnomaliesList({ severity }: AnomaliesListProps) {
       setLoading(true)
 
       try {
-        // Build query
-        let query = supabase
-          .from("anomalies")
-          .select(`
-            *,
-            profiles:user_id (email, full_name)
-          `)
-          .order("detected_at", { ascending: false })
+        const { data: userData } = await supabase.auth.getUser()
 
-        // Apply severity filter if provided
-        if (severity) {
-          query = query.eq("severity", severity)
-        }
+        if (!userData.user) return
 
-        const { data, error } = await query
+        // Mock data for demonstration
+        const mockAnomalies: Anomaly[] = [
+          {
+            id: "1",
+            user_id: userData.user.id,
+            description: "Unusual login attempt detected from unknown IP address",
+            severity: "high",
+            detected_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+            resolved: false,
+            resolved_at: null,
+            resolved_by: null,
+            user_email: userData.user.email,
+            user_name: userData.user.user_metadata?.full_name || userData.user.email?.split("@")[0],
+            device: "Windows 10, Chrome",
+            type: "Authentication",
+          },
+          {
+            id: "2",
+            user_id: userData.user.id,
+            description: "High CPU usage detected (95% for over 10 minutes)",
+            severity: "medium",
+            detected_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+            resolved: false,
+            resolved_at: null,
+            resolved_by: null,
+            user_email: userData.user.email,
+            user_name: userData.user.user_metadata?.full_name || userData.user.email?.split("@")[0],
+            device: "Windows 10",
+            type: "Performance",
+          },
+          {
+            id: "3",
+            user_id: userData.user.id,
+            description: "Potential data exfiltration: Large file upload to external service",
+            severity: "high",
+            detected_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+            resolved: false,
+            resolved_at: null,
+            resolved_by: null,
+            user_email: userData.user.email,
+            user_name: userData.user.user_metadata?.full_name || userData.user.email?.split("@")[0],
+            device: "MacOS, Firefox",
+            type: "Data Security",
+          },
+          {
+            id: "4",
+            user_id: userData.user.id,
+            description: "Multiple failed login attempts",
+            severity: "medium",
+            detected_at: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+            resolved: true,
+            resolved_at: new Date(Date.now() - 11 * 60 * 60 * 1000).toISOString(),
+            resolved_by: userData.user.id,
+            user_email: userData.user.email,
+            user_name: userData.user.user_metadata?.full_name || userData.user.email?.split("@")[0],
+            device: "iPhone, Safari",
+            type: "Authentication",
+          },
+          {
+            id: "5",
+            user_id: userData.user.id,
+            description: "Unusual file access pattern detected",
+            severity: "low",
+            detected_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+            resolved: false,
+            resolved_at: null,
+            resolved_by: null,
+            user_email: userData.user.email,
+            user_name: userData.user.user_metadata?.full_name || userData.user.email?.split("@")[0],
+            device: "Windows 10, Edge",
+            type: "File Access",
+          },
+        ]
 
-        if (error) {
-          console.error("Error fetching anomalies:", error)
-          return
-        }
+        // Filter by severity if provided
+        const filteredAnomalies = severity ? mockAnomalies.filter((a) => a.severity === severity) : mockAnomalies
 
-        if (data) {
-          // Process anomalies
-          const processedAnomalies = data.map((anomaly) => ({
-            ...anomaly,
-            user_email: anomaly.profiles?.email,
-            user_name: anomaly.profiles?.full_name,
-          }))
-
-          setAnomalies(processedAnomalies)
-
-          // Extract unique user IDs
-          const userIds = Array.from(new Set(data.map((a) => a.user_id)))
-
-          // Fetch user details if not already in profiles
-          const usersToFetch = userIds.filter((id) => !data.some((a) => a.profiles?.email))
-
-          if (usersToFetch.length > 0) {
-            const { data: userData } = await supabase
-              .from("profiles")
-              .select("id, email, full_name")
-              .in("id", usersToFetch)
-
-            if (userData) {
-              const userMap: Record<string, { email: string; name: string }> = {}
-              userData.forEach((user) => {
-                userMap[user.id] = {
-                  email: user.email,
-                  name: user.full_name || user.email.split("@")[0],
-                }
-              })
-
-              setUsers(userMap)
-            }
-          }
-        }
+        setAnomalies(filteredAnomalies)
       } catch (error) {
-        console.error("Error in anomalies fetch:", error)
+        console.error("Error fetching anomalies:", error)
+        toast.error("Failed to fetch anomalies")
       } finally {
         setLoading(false)
       }
     }
 
     fetchAnomalies()
-
-    // Set up real-time subscription
-    const channel = supabase
-      .channel("anomalies_changes")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "anomalies",
-        },
-        async (payload) => {
-          if (payload.eventType === "INSERT") {
-            // Fetch user details for the new anomaly
-            const { data: userData } = await supabase
-              .from("profiles")
-              .select("email, full_name")
-              .eq("id", payload.new.user_id)
-              .single()
-
-            const newAnomaly = {
-              ...payload.new,
-              user_email: userData?.email,
-              user_name: userData?.full_name,
-            }
-
-            // Add new anomaly to the list
-            setAnomalies((prev) => [newAnomaly, ...prev])
-          } else if (payload.eventType === "UPDATE") {
-            // Update the anomaly in the list
-            setAnomalies((prev) => prev.map((a) => (a.id === payload.new.id ? { ...a, ...payload.new } : a)))
-          } else if (payload.eventType === "DELETE") {
-            // Remove the anomaly from the list
-            setAnomalies((prev) => prev.filter((a) => a.id !== payload.old.id))
-          }
-        },
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
   }, [severity, supabase])
 
   // Handle resolving an anomaly
   const handleResolve = async (anomalyId: string) => {
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const { data: userData } = await supabase.auth.getUser()
 
-      if (!user) {
-        console.error("User not authenticated")
-        return
-      }
-
-      const { error } = await supabase
-        .from("anomalies")
-        .update({
-          resolved: true,
-          resolved_at: new Date().toISOString(),
-          resolved_by: user.id,
-        })
-        .eq("id", anomalyId)
-
-      if (error) {
-        console.error("Error resolving anomaly:", error)
+      if (!userData.user) {
+        toast.error("User not authenticated")
         return
       }
 
@@ -196,23 +168,66 @@ export function AnomaliesList({ severity }: AnomaliesListProps) {
                 ...a,
                 resolved: true,
                 resolved_at: new Date().toISOString(),
-                resolved_by: user.id,
+                resolved_by: userData.user.id,
               }
             : a,
         ),
       )
+
+      toast.success("Anomaly marked as resolved")
     } catch (error) {
       console.error("Error in resolve anomaly:", error)
+      toast.error("Failed to resolve anomaly")
     }
   }
 
-  // Filter and sort anomalies
+  // Export anomalies to CSV
+  const exportToCSV = () => {
+    try {
+      // Create CSV content
+      const headers = ["ID", "User", "Description", "Severity", "Detected At", "Status", "Device", "Type"]
+      const csvContent = [
+        headers.join(","),
+        ...filteredAnomalies.map((a) =>
+          [
+            a.id,
+            a.user_email,
+            `"${a.description.replace(/"/g, '""')}"`,
+            a.severity,
+            new Date(a.detected_at).toLocaleString(),
+            a.resolved ? "Resolved" : "Open",
+            a.device,
+            a.type,
+          ].join(","),
+        ),
+      ].join("\n")
+
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.setAttribute("href", url)
+      link.setAttribute("download", `anomalies_export_${new Date().toISOString().split("T")[0]}.csv`)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      toast.success("Anomalies exported to CSV")
+    } catch (error) {
+      console.error("Error exporting anomalies:", error)
+      toast.error("Failed to export anomalies")
+    }
+  }
+
+  // Filter anomalies based on search term and severity
   const filteredAnomalies = anomalies
     .filter((anomaly) => {
       const matchesSearch =
         (anomaly.user_email?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
         (anomaly.user_name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-        anomaly.description.toLowerCase().includes(searchTerm.toLowerCase())
+        anomaly.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (anomaly.type?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+        (anomaly.device?.toLowerCase() || "").includes(searchTerm.toLowerCase())
 
       return matchesSearch
     })
@@ -260,23 +275,29 @@ export function AnomaliesList({ severity }: AnomaliesListProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-4">
-        <Input
-          placeholder="Search anomalies..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="sm:max-w-xs"
-        />
-        <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="sm:max-w-xs">
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="newest">Newest first</SelectItem>
-            <SelectItem value="oldest">Oldest first</SelectItem>
-            <SelectItem value="severity">Severity</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="flex flex-col sm:flex-row gap-4 justify-between">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Input
+            placeholder="Search anomalies..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="sm:max-w-xs"
+          />
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="sm:max-w-xs">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest first</SelectItem>
+              <SelectItem value="oldest">Oldest first</SelectItem>
+              <SelectItem value="severity">Severity</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <Button variant="outline" size="sm" onClick={exportToCSV}>
+          <Download className="mr-2 h-4 w-4" />
+          Export to CSV
+        </Button>
       </div>
 
       {loading ? (
@@ -331,7 +352,7 @@ export function AnomaliesList({ severity }: AnomaliesListProps) {
                           <h3 className="font-medium">
                             {anomaly.user_name || anomaly.user_email?.split("@")[0] || "Unknown User"}
                           </h3>
-                          <p className="text-sm text-muted-foreground">{anomaly.user_email || "No email"}</p>
+                          <p className="text-sm text-muted-foreground">{anomaly.device || "Unknown device"}</p>
                         </div>
                         <Badge
                           variant={getSeverityVariant(anomaly.severity)}
@@ -341,16 +362,21 @@ export function AnomaliesList({ severity }: AnomaliesListProps) {
                           {anomaly.severity}
                         </Badge>
                       </div>
-                      <p>{anomaly.description}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Detected: {new Date(anomaly.detected_at).toLocaleString()}
-                      </p>
+                      <div>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-xs font-medium text-muted-foreground">{anomaly.type || "Unknown"}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(anomaly.detected_at), { addSuffix: true })}
+                          </span>
+                        </div>
+                        <p>{anomaly.description}</p>
+                      </div>
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-between p-6 pt-0">
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="sm" disabled={anomaly.resolved}>
+                        <Button variant="outline" size="sm">
                           <Eye className="mr-2 h-4 w-4" />
                           View Details
                         </Button>
@@ -363,6 +389,12 @@ export function AnomaliesList({ severity }: AnomaliesListProps) {
                               <div className="grid grid-cols-2 gap-2">
                                 <div className="text-muted-foreground">User:</div>
                                 <div>{anomaly.user_name || anomaly.user_email}</div>
+
+                                <div className="text-muted-foreground">Device:</div>
+                                <div>{anomaly.device || "Unknown"}</div>
+
+                                <div className="text-muted-foreground">Type:</div>
+                                <div>{anomaly.type || "Unknown"}</div>
 
                                 <div className="text-muted-foreground">Severity:</div>
                                 <div>

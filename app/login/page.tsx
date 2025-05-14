@@ -1,24 +1,25 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { useAuth } from "@/context/SupabaseProvider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Shield, AlertCircle } from "lucide-react"
-import { setMockSession } from "@/lib/auth/mock-auth"
+import { toast } from "sonner"
 
-export default function Login() {
+export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const { signIn, isLoading } = useAuth()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -29,39 +30,38 @@ export default function Login() {
       // Basic validation
       if (!email) {
         setError("Please enter your email address")
+        setLoading(false)
         return
       }
 
       if (!password) {
         setError("Please enter your password")
+        setLoading(false)
         return
       }
 
-      // Simulate authentication delay
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const { error: signInError } = await signIn(email, password)
 
-      // Set mock session
-      setMockSession()
+      if (signInError) {
+        console.error("Sign in error:", signInError)
+        setError(signInError.message || "Invalid email or password")
+        toast.error("Login failed: " + (signInError.message || "Invalid credentials"))
+        return
+      }
 
-      // Redirect to dashboard
+      toast.success("Login successful")
       router.push("/dashboard")
-      router.refresh()
     } catch (err) {
       console.error("Login error:", err)
       setError("An unexpected error occurred. Please try again.")
+      toast.error("An unexpected error occurred")
     } finally {
       setLoading(false)
     }
   }
 
-  const handleDemoAccess = () => {
-    setMockSession()
-    router.push("/dashboard")
-    router.refresh()
-  }
-
   return (
-    <div className="flex min-h-screen items-center justify-center bg-secondary p-4">
+    <div className="flex min-h-screen items-center justify-center bg-secondary/20 p-4">
       <Card className="w-full max-w-md shadow-md">
         <CardHeader className="space-y-1 flex flex-col items-center">
           <div className="flex items-center gap-2 mb-2">
@@ -87,37 +87,33 @@ export default function Login() {
                 placeholder="name@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                required
               />
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Password</Label>
-                <Link href="/reset-password" className="text-sm text-highlight hover:underline">
+                <Link href="/reset-password" className="text-sm text-primary hover:underline">
                   Forgot password?
                 </Link>
               </div>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Logging in..." : "Log in"}
+            <Button type="submit" className="w-full" disabled={loading || isLoading}>
+              {loading || isLoading ? "Logging in..." : "Log in"}
             </Button>
           </form>
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Or</span>
-            </div>
-          </div>
-          <Button variant="secondary" className="w-full" onClick={handleDemoAccess}>
-            Demo Access (Skip Login)
-          </Button>
         </CardContent>
         <CardFooter>
           <p className="text-center text-sm text-muted-foreground w-full">
             Don&apos;t have an account?{" "}
-            <Link href="/signup" className="text-highlight hover:underline">
+            <Link href="/signup" className="text-primary hover:underline">
               Sign up
             </Link>
           </p>

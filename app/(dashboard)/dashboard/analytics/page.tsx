@@ -5,8 +5,22 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { TypingSpeedChart } from "@/components/dashboard/typing-speed-chart"
 import { ActivityHeatmap } from "@/components/dashboard/activity-heatmap"
 import { BehaviorTrends } from "@/components/dashboard/behavior-trends"
+import { createClient } from "@/lib/supabase/server"
+import { redirect } from "next/navigation"
 
-export default function AnalyticsPage() {
+export default async function AnalyticsPage() {
+  const supabase = createClient()
+
+  // Check if user is authenticated
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  // If no user, redirect to login
+  if (!user) {
+    redirect("/login")
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div>

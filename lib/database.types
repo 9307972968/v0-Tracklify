@@ -215,3 +215,5 @@ export interface Database {
     }
   }
 }
+
+export type Database = Database
