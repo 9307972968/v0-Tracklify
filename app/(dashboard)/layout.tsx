@@ -13,14 +13,13 @@ export default async function DashboardLayout({
   const supabase = createClient()
 
   try {
-    // Check if user is authenticated
     const {
       data: { session },
-      error: sessionError,
+      error,
     } = await supabase.auth.getSession()
 
-    if (sessionError) {
-      console.error("Error getting session in dashboard layout:", sessionError)
+    if (error) {
+      console.error("Error getting session in dashboard layout:", error)
       redirect("/login")
     }
 
@@ -28,32 +27,34 @@ export default async function DashboardLayout({
       redirect("/login")
     }
 
-    // Create a default user object with session data
-    // This will be used if we can't fetch the profile
-    const defaultUser = {
-      ...session.user,
-      role: "user",
-      full_name: session.user.user_metadata?.full_name || "",
+    // Fetch user profile
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", session.user.id)
+      .single()
+
+    if (profileError && profileError.code !== "PGRST116") {
+      console.error("Error fetching profile in dashboard layout:", profileError)
     }
 
-    // Try to fetch user profile, but don't fail if the table doesn't exist
-    try {
-      const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single()
-
-      // If profile exists, use it
-      if (profile) {
-        defaultUser.role = profile.role
-        defaultUser.full_name = profile.full_name
+    // If profile doesn't exist, create it
+    if (!profile) {
+      try {
+        await supabase.from("profiles").insert({
+          id: session.user.id,
+          email: session.user.email || "",
+          full_name: session.user.user_metadata?.full_name || "",
+          role: "user",
+        })
+      } catch (error) {
+        console.error("Error creating profile in dashboard layout:", error)
       }
-    } catch (profileError) {
-      // Log the error but continue with the default user
-      console.error("Error fetching profile in dashboard layout:", profileError)
-      // No need to redirect, we'll use the default user
     }
 
     return (
       <div className="flex min-h-screen flex-col">
-        <DashboardHeader user={defaultUser} />
+        <DashboardHeader user={session.user} />
         <div className="flex flex-1">
           <DashboardNav />
           <main className="flex-1 overflow-y-auto bg-secondary/10 p-6">{children}</main>
