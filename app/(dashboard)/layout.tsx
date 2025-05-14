@@ -36,20 +36,8 @@ export default async function DashboardLayout({
       full_name: session.user.user_metadata?.full_name || "",
     }
 
-    // Try to fetch user profile, but don't fail if the table doesn't exist
-    try {
-      const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single()
-
-      // If profile exists, use it
-      if (profile) {
-        defaultUser.role = profile.role
-        defaultUser.full_name = profile.full_name
-      }
-    } catch (profileError) {
-      // Log the error but continue with the default user
-      console.error("Error fetching profile in dashboard layout:", profileError)
-      // No need to redirect, we'll use the default user
-    }
+    // Skip profile fetching entirely since the table doesn't exist yet
+    // We'll use the default user object instead
 
     return (
       <div className="flex min-h-screen flex-col">
