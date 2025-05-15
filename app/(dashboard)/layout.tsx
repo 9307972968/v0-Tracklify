@@ -10,34 +10,25 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const supabase = createClient()
-
   try {
+    const supabase = createClient()
+
     // Check if user is authenticated
     const {
       data: { session },
-      error: sessionError,
     } = await supabase.auth.getSession()
 
-    if (sessionError) {
-      console.error("Error getting session in dashboard layout:", sessionError)
-      redirect("/login")
-    }
-
+    // If no session, redirect to login
     if (!session) {
-      redirect("/login")
+      return redirect("/login")
     }
 
     // Create a default user object with session data
-    // This will be used if we can't fetch the profile
     const defaultUser = {
       ...session.user,
       role: "user",
       full_name: session.user.user_metadata?.full_name || "",
     }
-
-    // Skip profile fetching entirely since the table doesn't exist yet
-    // We'll use the default user object instead
 
     return (
       <div className="flex min-h-screen flex-col">
@@ -51,6 +42,6 @@ export default async function DashboardLayout({
     )
   } catch (error) {
     console.error("Error in dashboard layout:", error)
-    redirect("/login")
+    return redirect("/login")
   }
 }

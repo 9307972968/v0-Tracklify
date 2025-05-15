@@ -1,160 +1,224 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Download, Terminal, CheckCircle, AlertCircle } from "lucide-react"
-import { Steps, Step } from "@/components/ui/steps"
+import type { Metadata } from "next"
 import Link from "next/link"
-import { createClient } from "@/lib/supabase/server"
-import { redirect } from "next/navigation"
+import { Download, Info } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Steps } from "@/components/ui/steps"
 
-export default async function AgentPage() {
-  const supabase = createClient()
+export const metadata: Metadata = {
+  title: "Agent Download | Tracklify",
+  description: "Download and install the Tracklify monitoring agent",
+}
 
-  // Check if user is authenticated
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  // If no user, redirect to login
-  if (!user) {
-    redirect("/login")
-  }
-
+export default function AgentPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Tracklify Agent</h1>
-        <p className="text-muted-foreground">Download and install the Tracklify agent to monitor system activity</p>
+        <h1 className="text-3xl font-bold tracking-tight">Agent Download</h1>
+        <p className="text-muted-foreground">Download and install the Tracklify monitoring agent on your devices</p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Agent Download</CardTitle>
-            <CardDescription>Download the Tracklify agent for your operating system</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-500" />
-                <span>Latest version: 1.0.0</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-500" />
-                <span>Lightweight and secure</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-500" />
-                <span>Real-time monitoring</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-amber-500" />
-                <span>Requires admin privileges to install</span>
-              </div>
-            </div>
-            <Button asChild className="w-full mt-4">
-              <Link href="/agent/tracklify-agent.zip">
-                <Download className="mr-2 h-4 w-4" />
-                Download Agent
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertTitle>Important</AlertTitle>
+        <AlertDescription>
+          The Tracklify agent must be installed on each device you want to monitor. Follow the instructions below for
+          your operating system.
+        </AlertDescription>
+      </Alert>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Installation Status</CardTitle>
-            <CardDescription>Check if the agent is installed and running</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full bg-red-500"></div>
-              <span>Agent not installed</span>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Download and install the agent to start monitoring your system
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <Tabs defaultValue="windows" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="windows">Windows</TabsTrigger>
+          <TabsTrigger value="macos">macOS</TabsTrigger>
+          <TabsTrigger value="linux">Linux</TabsTrigger>
+        </TabsList>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Installation Instructions</CardTitle>
-          <CardDescription>Follow these steps to install the Tracklify agent</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Steps>
-            <Step>
-              <div className="flex items-center gap-2">
-                <Download className="h-5 w-5" />
-                <span className="font-medium">Download the agent</span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Click the download button above to get the latest version of the Tracklify agent
-              </p>
-            </Step>
-            <Step>
-              <div className="flex items-center gap-2">
-                <Terminal className="h-5 w-5" />
-                <span className="font-medium">Unzip the file</span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Extract the contents of the zip file to a location of your choice
-              </p>
-            </Step>
-            <Step>
-              <div className="flex items-center gap-2">
-                <Terminal className="h-5 w-5" />
-                <span className="font-medium">Run the installer with admin privileges</span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Right-click on the installer and select "Run as administrator"
-              </p>
-            </Step>
-            <Step>
-              <div className="flex items-center gap-2">
-                <Terminal className="h-5 w-5" />
-                <span className="font-medium">Log in using your Tracklify credentials</span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Enter the same email and password you use to log in to Tracklify
-              </p>
-            </Step>
-            <Step>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5" />
-                <span className="font-medium">The agent will run in the background and sync data</span>
-              </div>
-              <p className="text-sm text-muted-foreground">You can check the status of the agent on this page</p>
-            </Step>
-          </Steps>
-        </CardContent>
-      </Card>
+        <TabsContent value="windows" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Windows Installation</CardTitle>
+              <CardDescription>Follow these steps to install the Tracklify agent on Windows</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Steps
+                steps={[
+                  {
+                    title: "Download the agent",
+                    description: "Click the download button below to get the agent installer.",
+                  },
+                  {
+                    title: "Run the installer",
+                    description: "Right-click the downloaded file and select 'Run as administrator'.",
+                  },
+                  {
+                    title: "Allow permissions",
+                    description: "Accept any security prompts that appear during installation.",
+                  },
+                  {
+                    title: "Verify installation",
+                    description: "Check the dashboard to confirm the agent is connected and sending logs.",
+                  },
+                ]}
+              />
+            </CardContent>
+            <CardFooter>
+              <Button asChild>
+                <Link href="/agent/tracklify_agent.py" download>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Windows Agent
+                </Link>
+              </Button>
+            </CardFooter>
+          </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Troubleshooting</CardTitle>
-          <CardDescription>Common issues and solutions</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <h3 className="font-medium">Agent not connecting</h3>
-            <p className="text-sm text-muted-foreground">
-              Make sure you're using the correct credentials and that your internet connection is stable
-            </p>
-          </div>
-          <div>
-            <h3 className="font-medium">Installation fails</h3>
-            <p className="text-sm text-muted-foreground">
-              Ensure you're running the installer with administrator privileges
-            </p>
-          </div>
-          <div>
-            <h3 className="font-medium">Agent not showing as installed</h3>
-            <p className="text-sm text-muted-foreground">Try refreshing this page or restarting the agent service</p>
-          </div>
-        </CardContent>
-      </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Silent Installation</CardTitle>
+              <CardDescription>For deploying to multiple machines or automated installation</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p>Use the following command to install the agent silently:</p>
+                <pre className="bg-muted p-4 rounded-md overflow-x-auto">
+                  <code>python -m pip install pynput requests && python tracklify_agent.py</code>
+                </pre>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="macos" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>macOS Installation</CardTitle>
+              <CardDescription>Follow these steps to install the Tracklify agent on macOS</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Steps
+                steps={[
+                  {
+                    title: "Download the agent",
+                    description: "Click the download button below to get the agent script.",
+                  },
+                  {
+                    title: "Open Terminal",
+                    description: "Open Terminal from Applications > Utilities.",
+                  },
+                  {
+                    title: "Navigate to downloads",
+                    description: "Type 'cd Downloads' and press Enter.",
+                  },
+                  {
+                    title: "Make executable",
+                    description: "Run 'chmod +x tracklify_agent.py'.",
+                  },
+                  {
+                    title: "Run the agent",
+                    description: "Execute './tracklify_agent.py' to start monitoring.",
+                  },
+                ]}
+              />
+            </CardContent>
+            <CardFooter>
+              <Button asChild>
+                <Link href="/agent/tracklify_agent.py" download>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download macOS Agent
+                </Link>
+              </Button>
+            </CardFooter>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Terminal Installation</CardTitle>
+              <CardDescription>For advanced users or automated installation</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p>Use the following commands to install and run the agent:</p>
+                <pre className="bg-muted p-4 rounded-md overflow-x-auto">
+                  <code>
+                    {`curl -O https://your-domain.com/agent/tracklify_agent.py
+chmod +x tracklify_agent.py
+./tracklify_agent.py`}
+                  </code>
+                </pre>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="linux" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Linux Installation</CardTitle>
+              <CardDescription>Follow these steps to install the Tracklify agent on Linux</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Steps
+                steps={[
+                  {
+                    title: "Download the agent",
+                    description: "Click the download button below to get the agent script.",
+                  },
+                  {
+                    title: "Open Terminal",
+                    description: "Open your terminal application.",
+                  },
+                  {
+                    title: "Navigate to downloads",
+                    description: "Type 'cd Downloads' and press Enter.",
+                  },
+                  {
+                    title: "Make executable",
+                    description: "Run 'chmod +x tracklify_agent.py'.",
+                  },
+                  {
+                    title: "Install dependencies",
+                    description: "Run 'pip install pynput requests'.",
+                  },
+                  {
+                    title: "Run the agent",
+                    description: "Execute './tracklify_agent.py' to start monitoring.",
+                  },
+                ]}
+              />
+            </CardContent>
+            <CardFooter>
+              <Button asChild>
+                <Link href="/agent/tracklify_agent.py" download>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Linux Agent
+                </Link>
+              </Button>
+            </CardFooter>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Headless Installation</CardTitle>
+              <CardDescription>For servers or automated installation</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p>Use the following commands to install and run the agent:</p>
+                <pre className="bg-muted p-4 rounded-md overflow-x-auto">
+                  <code>
+                    {`wget https://your-domain.com/agent/tracklify_agent.py
+chmod +x tracklify_agent.py
+pip install pynput requests
+nohup ./tracklify_agent.py > tracklify.log 2>&1 &`}
+                  </code>
+                </pre>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

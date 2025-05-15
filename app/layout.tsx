@@ -1,15 +1,15 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
-import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { SupabaseProvider } from "@/context/SupabaseProvider"
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster } from "sonner"
+import "./globals.css"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Tracklify - System Monitoring Platform",
+  title: "Tracklify - Real-time System Monitoring",
   description: "Real-time Insight. Total Control. Ethically Engineered.",
     generator: 'v0.dev'
 }
@@ -22,10 +22,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <SupabaseProvider>
             {children}
-            <Toaster />
+            <Toaster position="top-right" />
           </SupabaseProvider>
         </ThemeProvider>
       </body>

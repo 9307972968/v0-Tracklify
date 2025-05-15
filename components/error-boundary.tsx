@@ -16,10 +16,21 @@ export default function ErrorBoundary({
   useEffect(() => {
     // Log the error to an error reporting service
     console.error("Error boundary caught error:", error)
+
+    // If the error is a redirect, handle it
+    if (error.message === "NEXT_REDIRECT") {
+      // This is a redirect error, we can safely ignore it
+      return
+    }
   }, [error])
 
   const handleGoToLogin = () => {
     router.push("/login")
+  }
+
+  // If the error is a redirect, don't show the error UI
+  if (error.message === "NEXT_REDIRECT" || error.message === "Redirect") {
+    return null
   }
 
   return (
