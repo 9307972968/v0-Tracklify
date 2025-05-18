@@ -7,66 +7,99 @@ export interface Database {
         Row: {
           id: string
           created_at: string
-          keystroke: string
+          user_id: string
           device_id: string
-          window_title?: string | null
-          application?: string | null
-          user_id?: string | null
-          ip_address?: string | null
-          metadata?: Json | null
+          keystroke: string
+          application?: string
+          window_title?: string
         }
         Insert: {
           id?: string
           created_at?: string
-          keystroke: string
+          user_id: string
           device_id: string
-          window_title?: string | null
-          application?: string | null
-          user_id?: string | null
-          ip_address?: string | null
-          metadata?: Json | null
+          keystroke: string
+          application?: string
+          window_title?: string
         }
         Update: {
           id?: string
           created_at?: string
-          keystroke?: string
+          user_id?: string
           device_id?: string
-          window_title?: string | null
-          application?: string | null
-          user_id?: string | null
-          ip_address?: string | null
-          metadata?: Json | null
+          keystroke?: string
+          application?: string
+          window_title?: string
+        }
+      }
+      agents: {
+        Row: {
+          id: string
+          created_at: string
+          user_id: string
+          device_name: string
+          platform: string
+          last_active: string | null
+          is_active: boolean
+          is_revoked: boolean
+          keylogging_enabled: boolean
+          full_monitoring: boolean
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          user_id: string
+          device_name: string
+          platform: string
+          last_active?: string | null
+          is_active?: boolean
+          is_revoked?: boolean
+          keylogging_enabled?: boolean
+          full_monitoring?: boolean
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          user_id?: string
+          device_name?: string
+          platform?: string
+          last_active?: string | null
+          is_active?: boolean
+          is_revoked?: boolean
+          keylogging_enabled?: boolean
+          full_monitoring?: boolean
         }
       }
       profiles: {
         Row: {
           id: string
-          email: string
-          full_name: string | null
-          avatar_url: string | null
-          role: string | null
           created_at: string
           updated_at: string
+          full_name: string | null
+          email: string
+          role: string
+          risk_score: number
         }
         Insert: {
           id: string
-          email: string
-          full_name?: string | null
-          avatar_url?: string | null
-          role?: string | null
           created_at?: string
           updated_at?: string
+          full_name?: string | null
+          email: string
+          role?: string
+          risk_score?: number
         }
         Update: {
           id?: string
-          email?: string
-          full_name?: string | null
-          avatar_url?: string | null
-          role?: string | null
           created_at?: string
           updated_at?: string
+          full_name?: string | null
+          email?: string
+          role?: string
+          risk_score?: number
         }
       }
+      // Add other tables as needed
     }
     Views: {
       [_ in never]: never

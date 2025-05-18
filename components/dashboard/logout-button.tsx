@@ -1,31 +1,35 @@
 "use client"
 
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { LogOut } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/context/SupabaseProvider"
 import { toast } from "sonner"
 
 export function LogoutButton() {
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const router = useRouter()
-  const { signOut } = useAuth()
+  const supabase = createClient()
 
   const handleLogout = async () => {
     try {
-      await signOut()
+      setIsLoggingOut(true)
+      await supabase.auth.signOut()
       toast.success("Logged out successfully")
       router.push("/login")
-      router.refresh()
     } catch (error) {
-      console.error("Logout error:", error)
-      toast.error("Failed to log out. Please try again.")
+      console.error("Error logging out:", error)
+      toast.error("Failed to log out")
+    } finally {
+      setIsLoggingOut(false)
     }
   }
 
   return (
-    <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-1">
-      <LogOut className="h-4 w-4" />
-      <span>Logout</span>
+    <Button variant="ghost" size="icon" onClick={handleLogout} disabled={isLoggingOut}>
+      <LogOut className="h-5 w-5" />
+      <span className="sr-only">Log out</span>
     </Button>
   )
 }

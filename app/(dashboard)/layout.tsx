@@ -3,7 +3,7 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { DashboardNav } from "@/components/dashboard/dashboard-nav"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster } from "sonner"
 
 export default async function DashboardLayout({
   children,

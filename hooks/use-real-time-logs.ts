@@ -29,6 +29,8 @@ export function useRealTimeLogs(filter: LogFilter = {}) {
       setError(null)
 
       try {
+        console.log("Fetching logs with filters:", { deviceId, searchTerm, startDate, endDate, limit })
+
         let query = supabase.from("agent_logs").select("*").order("created_at", { ascending: false }).limit(limit)
 
         // Apply filters if provided
@@ -54,10 +56,12 @@ export function useRealTimeLogs(filter: LogFilter = {}) {
           throw new Error(fetchError.message)
         }
 
+        console.log("Fetched logs:", data?.length || 0)
         setLogs(data || [])
       } catch (err) {
-        setError(err instanceof Error ? err.message : "An unknown error occurred")
+        const errorMessage = err instanceof Error ? err.message : "An unknown error occurred"
         console.error("Error fetching logs:", err)
+        setError(errorMessage)
       } finally {
         setIsLoading(false)
       }
@@ -68,6 +72,8 @@ export function useRealTimeLogs(filter: LogFilter = {}) {
 
   // Set up real-time subscription
   useEffect(() => {
+    console.log("Setting up real-time subscription")
+
     const channel = supabase
       .channel("realtime-logs")
       .on(
@@ -79,6 +85,8 @@ export function useRealTimeLogs(filter: LogFilter = {}) {
           filter: deviceId ? `device_id=eq.${deviceId}` : undefined,
         },
         (payload) => {
+          console.log("Received real-time update:", payload)
+
           // Check if the new log matches our search criteria
           const newLog = payload.new as AgentLog
           let shouldAdd = true
@@ -96,6 +104,7 @@ export function useRealTimeLogs(filter: LogFilter = {}) {
           }
 
           if (shouldAdd) {
+            console.log("Adding new log to state:", newLog)
             setLogs((prevLogs) => {
               // Check if log already exists to prevent duplicates
               if (prevLogs.some((log) => log.id === newLog.id)) {
@@ -108,11 +117,12 @@ export function useRealTimeLogs(filter: LogFilter = {}) {
         },
       )
       .subscribe((status) => {
-        setIsRealTimeConnected(status === "SUBSCRIBED")
         console.log("Realtime subscription status:", status)
+        setIsRealTimeConnected(status === "SUBSCRIBED")
       })
 
     return () => {
+      console.log("Cleaning up real-time subscription")
       channel.unsubscribe()
     }
   }, [supabase, deviceId, searchTerm, startDate, endDate, limit])

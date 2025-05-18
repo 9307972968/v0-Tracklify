@@ -1,15 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Download, Search } from "lucide-react"
+import { Download, Search, RefreshCw } from "lucide-react"
 import { format } from "date-fns"
 import { useRealTimeLogs } from "@/hooks/use-real-time-logs"
 import { useDebounce } from "@/hooks/use-debounce"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { LiveIndicator } from "@/components/ui/live-indicator"
-import { LogItem } from "@/components/dashboard/log-item"
 import {
   Select,
   SelectContent,
@@ -20,21 +19,19 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 
 export function LiveLogs() {
   const [searchTerm, setSearchTerm] = useState("")
   const [deviceId, setDeviceId] = useState<string>("")
   const debouncedSearchTerm = useDebounce(searchTerm, 500)
+  const [newLogIds, setNewLogIds] = useState<Set<string>>(new Set())
 
-  const { logs, isLoading, error, isRealTimeConnected } = useRealTimeLogs({
+  const { logs, isLoading, error, isRealTimeConnected, refresh } = useRealTimeLogs({
     searchTerm: debouncedSearchTerm,
-    deviceId: deviceId || undefined,
+    deviceId: deviceId === "all" ? undefined : deviceId || undefined,
     limit: 100,
   })
-
-  // Track new logs for highlighting
-  const [newLogIds, setNewLogIds] = useState<Set<string>>(new Set())
 
   // Update newLogIds when logs change
   useEffect(() => {
@@ -88,17 +85,10 @@ export function LiveLogs() {
       link.click()
       document.body.removeChild(link)
 
-      toast({
-        title: "Logs Exported",
-        description: `${logs.length} logs exported to CSV successfully.`,
-      })
+      toast.success("Logs exported successfully")
     } catch (error) {
       console.error("Error exporting logs:", error)
-      toast({
-        title: "Export Failed",
-        description: "Failed to export logs. Please try again.",
-        variant: "destructive",
-      })
+      toast.error("Failed to export logs. Please try again.")
     }
   }
 
@@ -150,7 +140,7 @@ export function LiveLogs() {
           </div>
         )}
 
-        <div className="space-y-2">
+        <div className="space-y-2 max-h-[500px] overflow-y-auto">
           {isLoading ? (
             // Loading skeletons
             Array.from({ length: 5 }).map((_, i) => (
@@ -172,10 +162,34 @@ export function LiveLogs() {
               </div>
             </div>
           ) : (
-            logs.map((log) => <LogItem key={log.id} log={log} isNew={newLogIds.has(log.id)} />)
+            logs.map((log) => (
+              <div
+                key={log.id}
+                className={`rounded-md border p-3 transition-all ${newLogIds.has(log.id) ? "animate-highlight" : ""}`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {format(new Date(log.created_at), "yyyy-MM-dd HH:mm:ss")}
+                    </span>
+                    <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium">{log.device_id}</span>
+                  </div>
+                </div>
+                <div className="mt-1 font-mono text-sm">{log.keystroke}</div>
+              </div>
+            ))
           )}
         </div>
       </CardContent>
+      <CardFooter className="flex justify-between pt-4">
+        <div className="text-sm text-muted-foreground">
+          {logs.length} {logs.length === 1 ? "log" : "logs"} found
+        </div>
+        <Button variant="outline" size="sm" onClick={refresh} disabled={isLoading}>
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Refresh
+        </Button>
+      </CardFooter>
     </Card>
   )
 }

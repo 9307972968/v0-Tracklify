@@ -1,31 +1,26 @@
-import { formatDistanceToNow } from "date-fns"
+import { format } from "date-fns"
 import { cn } from "@/lib/utils"
+import type { Database } from "@/lib/database.types"
+
+type Log = Database["public"]["Tables"]["agent_logs"]["Row"]
 
 interface LogItemProps {
-  log: {
-    id: string
-    created_at: string
-    keystroke: string
-    device_id: string
-  }
+  log: Log
   isNew?: boolean
 }
 
 export function LogItem({ log, isNew = false }: LogItemProps) {
-  const formattedTime = formatDistanceToNow(new Date(log.created_at), { addSuffix: true })
+  const formattedDate = format(new Date(log.created_at), "yyyy-MM-dd HH:mm:ss")
 
   return (
-    <div
-      className={cn(
-        "flex flex-col space-y-1 rounded-md border border-border bg-card p-3 text-sm shadow-sm transition-all",
-        isNew && "animate-highlight",
-      )}
-    >
+    <div className={cn("rounded-md border p-3 transition-all", isNew && "animate-highlight")}>
       <div className="flex items-center justify-between">
-        <span className="font-medium text-primary">{log.device_id}</span>
-        <span className="text-xs text-muted-foreground">{formattedTime}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-muted-foreground">{formattedDate}</span>
+          <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium">{log.device_id}</span>
+        </div>
       </div>
-      <div className="font-mono">{log.keystroke}</div>
+      <div className="mt-1 font-mono text-sm">{log.keystroke}</div>
     </div>
   )
 }

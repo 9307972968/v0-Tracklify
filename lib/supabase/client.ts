@@ -15,10 +15,6 @@ export function createClient() {
 }
 
 // Export the createClientComponentClient function for backward compatibility
-// This is needed because some parts of the codebase are still using this function
 export function createClientComponentClient() {
   return createClient()
 }
-
-// Also export it as a named constant for places that might be importing it directly
-export const createClientComponentClient2 = createClient

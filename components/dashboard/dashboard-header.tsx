@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 interface DashboardHeaderProps {
   user: User & {
@@ -38,6 +39,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
         <span className="text-primary">Tracklify</span>
       </Link>
       <div className="flex items-center gap-4">
+        <ThemeToggle />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full">

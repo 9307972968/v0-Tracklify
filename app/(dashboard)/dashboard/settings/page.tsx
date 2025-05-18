@@ -1,63 +1,41 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Suspense } from "react"
-import { Skeleton } from "@/components/ui/skeleton"
 import { PrivacySettings } from "@/components/dashboard/privacy-settings"
 import { LogSettings } from "@/components/dashboard/log-settings"
 import { NotificationSettings } from "@/components/dashboard/notification-settings"
+import { AgentManagement } from "@/components/dashboard/agent-management"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Settings | Tracklify",
+  description: "Configure your Tracklify settings",
+}
 
 export default function SettingsPage() {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground">Configure your monitoring and privacy settings.</p>
+        <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
+        <p className="text-muted-foreground">Manage your account settings and preferences.</p>
       </div>
 
-      <Tabs defaultValue="privacy" className="space-y-4">
+      <Tabs defaultValue="agents" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="privacy">Privacy & Consent</TabsTrigger>
-          <TabsTrigger value="logs">Log Retention</TabsTrigger>
+          <TabsTrigger value="agents">Agents</TabsTrigger>
+          <TabsTrigger value="privacy">Privacy</TabsTrigger>
+          <TabsTrigger value="logs">Logs</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
         </TabsList>
+        <TabsContent value="agents" className="space-y-4">
+          <AgentManagement />
+        </TabsContent>
         <TabsContent value="privacy" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Privacy & Consent Settings</CardTitle>
-              <CardDescription>Configure privacy policies and consent management</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Suspense fallback={<Skeleton className="h-[400px] w-full" />}>
-                <PrivacySettings />
-              </Suspense>
-            </CardContent>
-          </Card>
+          <PrivacySettings />
         </TabsContent>
         <TabsContent value="logs" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Log Retention Settings</CardTitle>
-              <CardDescription>Configure how long logs are stored in the system</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Suspense fallback={<Skeleton className="h-[400px] w-full" />}>
-                <LogSettings />
-              </Suspense>
-            </CardContent>
-          </Card>
+          <LogSettings />
         </TabsContent>
         <TabsContent value="notifications" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification Settings</CardTitle>
-              <CardDescription>Configure alerts and notification preferences</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Suspense fallback={<Skeleton className="h-[400px] w-full" />}>
-                <NotificationSettings />
-              </Suspense>
-            </CardContent>
-          </Card>
+          <NotificationSettings />
         </TabsContent>
       </Tabs>
     </div>
