@@ -27,11 +27,21 @@ export async function GET(request: Request) {
       },
     )
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    try {
+      const { error } = await supabase.auth.exchangeCodeForSession(code)
 
-    if (error) {
-      console.error("Error exchanging code for session:", error)
-      return NextResponse.redirect(`${requestUrl.origin}/login?error=Could not authenticate user`)
+      if (error) {
+        console.error("Error exchanging code for session:", error)
+        // Clear any invalid auth cookies
+        const authCookies = ["sb-access-token", "sb-refresh-token"]
+        authCookies.forEach((cookieName) => {
+          cookieStore.set(cookieName, "", { maxAge: 0 })
+        })
+        return NextResponse.redirect(`${requestUrl.origin}/login?error=Could not authenticate user`)
+      }
+    } catch (error) {
+      console.error("Exception exchanging code for session:", error)
+      return NextResponse.redirect(`${requestUrl.origin}/login?error=Authentication error`)
     }
   }
 

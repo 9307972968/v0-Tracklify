@@ -73,9 +73,30 @@ export async function middleware(request: NextRequest) {
       },
     )
 
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
+    // Try to get the session, but handle auth errors gracefully
+    let session = null
+    try {
+      const { data, error } = await supabase.auth.getSession()
+      if (!error) {
+        session = data.session
+      } else if (
+        error.name === "AuthApiError" &&
+        (error.message.includes("refresh_token_not_found") || error.status === 400)
+      ) {
+        // Clear invalid auth cookies if we get a refresh token error
+        const authCookies = ["sb-access-token", "sb-refresh-token"]
+        authCookies.forEach((cookieName) => {
+          response.cookies.set({
+            name: cookieName,
+            value: "",
+            maxAge: 0,
+          })
+        })
+      }
+    } catch (error) {
+      console.error("Auth error in middleware:", error)
+      // Continue without a session
+    }
 
     const pathname = request.nextUrl.pathname
 

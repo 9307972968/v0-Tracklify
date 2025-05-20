@@ -30,12 +30,21 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       try {
         const { data, error } = await supabase.auth.getSession()
         if (error) {
-          throw error
+          // If there's an auth error, clear the session
+          console.error("Error getting session:", error)
+          await supabase.auth.signOut()
+          setSession(null)
+          setUser(null)
+        } else {
+          setSession(data.session)
+          setUser(data.session?.user || null)
         }
-        setSession(data.session)
-        setUser(data.session?.user || null)
       } catch (error) {
         console.error("Error getting session:", error)
+        // If there's an exception, clear the session
+        await supabase.auth.signOut()
+        setSession(null)
+        setUser(null)
       } finally {
         setIsLoading(false)
       }
@@ -45,10 +54,19 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      setSession(session)
-      setUser(session?.user || null)
-      router.refresh()
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "TOKEN_REFRESHED" || event === "SIGNED_IN") {
+        setSession(session)
+        setUser(session?.user || null)
+      } else if (event === "SIGNED_OUT") {
+        setSession(null)
+        setUser(null)
+      }
+
+      // Only refresh the page for certain events to avoid unnecessary refreshes
+      if (["SIGNED_IN", "SIGNED_OUT", "USER_UPDATED"].includes(event)) {
+        router.refresh()
+      }
     })
 
     return () => {
@@ -87,8 +105,16 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
-    router.push("/login")
+    try {
+      await supabase.auth.signOut()
+      router.push("/login")
+    } catch (error) {
+      console.error("Sign out error:", error)
+      // Even if there's an error, we should clear the local state
+      setSession(null)
+      setUser(null)
+      router.push("/login")
+    }
   }
 
   const value = {

@@ -1,259 +1,137 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, Legend } from "recharts"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import { Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts"
 import { createClient } from "@/lib/supabase/client"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
-import { InfoIcon, Download } from "lucide-react"
-import { useToast } from "@/components/ui/use-toast"
 
-interface TypingData {
-  date: string
-  [key: string]: string | number
+interface User {
+  id: string
+  name: string
+  email: string
+  typing_speed: number
+  created_at: string
 }
 
-// Mock users for when the profiles table doesn't exist
-const MOCK_USERS = [
-  { id: "user1", email: "john.doe@example.com" },
-  { id: "user2", email: "jane.smith@example.com" },
-  { id: "user3", email: "alex.wong@example.com" },
-  { id: "user4", email: "sarah.johnson@example.com" },
-  { id: "user5", email: "michael.brown@example.com" },
-]
-
 export function TypingSpeedChart() {
-  const [data, setData] = useState<TypingData[]>([])
-  const [users, setUsers] = useState<{ id: string; email: string }[]>([])
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([])
+  const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
-  const [usingSampleData, setUsingSampleData] = useState(false)
-  const supabase = createClient()
-  const { toast } = useToast()
+  const [error, setError] = useState<string | null>(null)
 
-  // Fetch users
   useEffect(() => {
     const fetchUsers = async () => {
+      setLoading(true)
+      setError(null)
+
       try {
-        const { data, error } = await supabase.from("profiles").select("id, email").limit(10)
+        const supabase = createClient()
 
-        if (error) {
-          console.error("Error fetching users:", error)
-          // Use mock users if there's an error (likely table doesn't exist)
-          setUsers(MOCK_USERS)
-          setSelectedUsers(MOCK_USERS.slice(0, 3).map((user) => user.id))
-          setUsingSampleData(true)
-          return
-        }
+        // First check if the profiles table exists
+        const { error: tableCheckError } = await supabase.from("profiles").select("count").limit(1).single()
 
-        if (data && data.length > 0) {
-          setUsers(data)
-          // Select first 3 users by default
-          setSelectedUsers(data.slice(0, 3).map((user) => user.id))
+        if (tableCheckError && tableCheckError.message.includes("does not exist")) {
+          // If profiles table doesn't exist, use users table or create mock data
+          console.log("Profiles table doesn't exist, using mock data instead")
+
+          // Generate mock data for demonstration
+          const mockUsers = Array.from({ length: 5 }, (_, i) => ({
+            id: `user-${i + 1}`,
+            name: `User ${i + 1}`,
+            email: `user${i + 1}@example.com`,
+            typing_speed: Math.floor(Math.random() * 80) + 20, // Random speed between 20-100 WPM
+            created_at: new Date().toISOString(),
+          }))
+
+          setUsers(mockUsers)
         } else {
-          // Use mock users if no data is returned
-          setUsers(MOCK_USERS)
-          setSelectedUsers(MOCK_USERS.slice(0, 3).map((user) => user.id))
-          setUsingSampleData(true)
+          // If profiles table exists, fetch real data
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("id, name, email, typing_speed, created_at")
+            .order("typing_speed", { ascending: false })
+            .limit(10)
+
+          if (error) throw error
+
+          setUsers(data || [])
         }
       } catch (err) {
-        console.error("Error in fetchUsers:", err)
-        // Use mock users if there's an exception
-        setUsers(MOCK_USERS)
-        setSelectedUsers(MOCK_USERS.slice(0, 3).map((user) => user.id))
-        setUsingSampleData(true)
-      }
-    }
+        console.error("Error fetching users:", err)
+        setError("Failed to load user data. Using sample data instead.")
 
-    fetchUsers()
-  }, [supabase])
+        // Provide fallback data
+        const fallbackUsers = Array.from({ length: 5 }, (_, i) => ({
+          id: `user-${i + 1}`,
+          name: `User ${i + 1}`,
+          email: `user${i + 1}@example.com`,
+          typing_speed: Math.floor(Math.random() * 80) + 20,
+          created_at: new Date().toISOString(),
+        }))
 
-  // Generate typing speed data
-  useEffect(() => {
-    const generateTypingData = () => {
-      if (selectedUsers.length === 0) {
-        setData([])
-        setLoading(false)
-        return
-      }
-
-      setLoading(true)
-
-      try {
-        const now = new Date()
-        const data: TypingData[] = []
-
-        // Generate data for the last 14 days
-        for (let i = 13; i >= 0; i--) {
-          const date = new Date(now)
-          date.setDate(date.getDate() - i)
-          const dateStr = date.toISOString().split("T")[0]
-
-          const entry: TypingData = { date: dateStr }
-
-          // Generate random WPM for each selected user
-          selectedUsers.forEach((userId) => {
-            const userEmail = users.find((u) => u.id === userId)?.email || userId
-
-            // Generate somewhat consistent data with some variation
-            // Use userId as a seed for consistent randomness per user
-            const userSeed = userId.charCodeAt(0) + userId.charCodeAt(userId.length - 1)
-            const baseWpm = 30 + ((userSeed % 50) + Math.floor(Math.random() * 20)) // Base WPM between 30-100
-
-            // Create a trend over time (generally improving)
-            const trendFactor = Math.min(i / 13, 1) * 15 // Up to 15 WPM improvement over time
-
-            // Daily variation
-            const dailyVariation = Math.floor(Math.random() * 16) - 8 // -8 to +8 variation
-
-            // Combine factors
-            const wpm = Math.max(10, Math.floor(baseWpm + (13 - i) - trendFactor + dailyVariation))
-
-            entry[userEmail] = wpm
-          })
-
-          data.push(entry)
-        }
-
-        setData(data)
-      } catch (error) {
-        console.error("Error generating typing data:", error)
+        setUsers(fallbackUsers)
       } finally {
         setLoading(false)
       }
     }
 
-    generateTypingData()
-  }, [selectedUsers, users])
+    fetchUsers()
+  }, [])
 
-  const handleUserSelection = (userId: string) => {
-    setSelectedUsers((prev) => {
-      if (prev.includes(userId)) {
-        return prev.filter((id) => id !== userId)
-      } else {
-        return [...prev, userId]
-      }
-    })
-  }
-
-  const exportChart = () => {
-    try {
-      // Create CSV content
-      const headers = [
-        "Date",
-        ...selectedUsers.map((userId) => {
-          const user = users.find((u) => u.id === userId)
-          return user ? user.email : userId
-        }),
-      ]
-
-      const csvContent = [
-        headers.join(","),
-        ...data.map((item) => {
-          return [
-            item.date,
-            ...selectedUsers.map((userId) => {
-              const userEmail = users.find((u) => u.id === userId)?.email || userId
-              return item[userEmail]
-            }),
-          ].join(",")
-        }),
-      ].join("\n")
-
-      // Create blob and download
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement("a")
-      link.setAttribute("href", url)
-      link.setAttribute("download", `typing_speed_${new Date().toISOString().split("T")[0]}.csv`)
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-
-      toast({
-        title: "Export Successful",
-        description: "Chart data has been exported to CSV",
-      })
-    } catch (error) {
-      console.error("Error exporting chart:", error)
-      toast({
-        title: "Export Failed",
-        description: "Failed to export chart data",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const colors = ["#000000", "#3B82F6", "#10B981", "#F59E0B", "#EF4444"]
+  // Prepare data for the chart
+  const chartData = users.map((user) => ({
+    name: user.name,
+    wpm: user.typing_speed,
+  }))
 
   return (
-    <div className="space-y-4">
-      {usingSampleData && (
-        <Alert variant="default" className="bg-muted/50 border-muted">
-          <InfoIcon className="h-4 w-4" />
-          <AlertDescription>
-            Displaying sample data. Create the profiles table in your database to see real data.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap gap-2">
-          {users.map((user, index) => (
-            <button
-              key={user.id}
-              onClick={() => handleUserSelection(user.id)}
-              className={`px-3 py-1 text-xs rounded-full transition-colors ${
-                selectedUsers.includes(user.id)
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground"
-              }`}
-              style={{
-                borderColor: selectedUsers.includes(user.id) ? colors[index % colors.length] : undefined,
-                borderWidth: selectedUsers.includes(user.id) ? "1px" : undefined,
-              }}
-            >
-              {user.email.split("@")[0]}
-            </button>
-          ))}
-        </div>
-        <Button variant="outline" size="sm" onClick={exportChart} className="flex items-center gap-1">
-          <Download className="h-4 w-4" />
-          Export CSV
-        </Button>
-      </div>
-
-      <div className="h-[350px] w-full">
+    <Card>
+      <CardHeader>
+        <CardTitle>Typing Speed Comparison</CardTitle>
+        <CardDescription>Average typing speed in words per minute (WPM)</CardDescription>
+      </CardHeader>
+      <CardContent>
         {loading ? (
-          <div className="flex items-center justify-center h-full">
-            <p>Loading chart data...</p>
+          <div className="flex h-[300px] items-center justify-center">
+            <p className="text-sm text-muted-foreground">Loading data...</p>
+          </div>
+        ) : error ? (
+          <div className="flex h-[300px] items-center justify-center">
+            <p className="text-sm text-muted-foreground">{error}</p>
+          </div>
+        ) : users.length === 0 ? (
+          <div className="flex h-[300px] items-center justify-center">
+            <p className="text-sm text-muted-foreground">No data available</p>
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-              <XAxis dataKey="date" />
-              <YAxis label={{ value: "WPM", angle: -90, position: "insideLeft" }} />
-              <Tooltip />
-              <Legend />
-              {selectedUsers.map((userId, index) => {
-                const userEmail = users.find((u) => u.id === userId)?.email || userId
-                return (
-                  <Line
-                    key={userId}
-                    type="monotone"
-                    dataKey={userEmail}
-                    stroke={colors[index % colors.length]}
-                    strokeWidth={2}
-                    dot={{ r: 4 }}
-                    activeDot={{ r: 6 }}
-                  />
-                )
-              })}
-            </LineChart>
-          </ResponsiveContainer>
+          <ChartContainer
+            config={{
+              wpm: {
+                label: "WPM",
+                color: "hsl(var(--chart-1))",
+              },
+            }}
+            className="h-[300px]"
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData}>
+                <XAxis dataKey="name" />
+                <YAxis />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Line
+                  type="monotone"
+                  dataKey="wpm"
+                  strokeWidth={2}
+                  activeDot={{
+                    r: 6,
+                    style: { fill: "var(--color-wpm)", opacity: 0.8 },
+                  }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartContainer>
         )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }
