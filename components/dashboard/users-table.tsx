@@ -52,10 +52,62 @@ export function UsersTable() {
       setLoading(true)
 
       try {
+        // First check if the profiles table exists
+        const { error: tableCheckError } = await supabase.from("profiles").select("id").limit(1).single()
+
+        // If the table doesn't exist, use mock data
+        if (tableCheckError && tableCheckError.message.includes("does not exist")) {
+          console.log("Profiles table does not exist, using mock data")
+
+          // Mock data for demonstration
+          const mockUsers = [
+            {
+              id: "1",
+              email: "admin@tracklify.com",
+              full_name: "Admin User",
+              role: "admin",
+              risk_score: 10,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              last_active: new Date().toISOString(),
+            },
+            {
+              id: "2",
+              email: "manager@tracklify.com",
+              full_name: "Manager User",
+              role: "manager",
+              risk_score: 35,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              last_active: new Date().toISOString(),
+            },
+            {
+              id: "3",
+              email: "user@tracklify.com",
+              full_name: "Regular User",
+              role: "user",
+              risk_score: 75,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              last_active: null,
+            },
+          ]
+
+          setUsers(mockUsers)
+          setLoading(false)
+          return
+        }
+
+        // If the table exists, fetch real data
         const { data, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: false })
 
         if (error) {
           console.error("Error fetching users:", error)
+          toast({
+            title: "Error",
+            description: "Failed to fetch users. Please try again later.",
+            variant: "destructive",
+          })
           return
         }
 
@@ -63,16 +115,24 @@ export function UsersTable() {
           // Fetch last activity for each user
           const usersWithActivity = await Promise.all(
             data.map(async (user) => {
-              const { data: logs } = await supabase
-                .from("keystroke_logs")
-                .select("timestamp")
-                .eq("user_id", user.id)
-                .order("timestamp", { ascending: false })
-                .limit(1)
+              try {
+                const { data: logs } = await supabase
+                  .from("keystroke_logs")
+                  .select("timestamp")
+                  .eq("user_id", user.id)
+                  .order("timestamp", { ascending: false })
+                  .limit(1)
 
-              return {
-                ...user,
-                last_active: logs && logs.length > 0 ? logs[0].timestamp : null,
+                return {
+                  ...user,
+                  last_active: logs && logs.length > 0 ? logs[0].timestamp : null,
+                }
+              } catch (err) {
+                console.error("Error fetching user activity:", err)
+                return {
+                  ...user,
+                  last_active: null,
+                }
               }
             }),
           )
@@ -81,17 +141,34 @@ export function UsersTable() {
         }
       } catch (error) {
         console.error("Error in users fetch:", error)
+        toast({
+          title: "Error",
+          description: "An unexpected error occurred while fetching users.",
+          variant: "destructive",
+        })
       } finally {
         setLoading(false)
       }
     }
 
     fetchUsers()
-  }, [supabase])
+  }, [supabase, toast])
 
   // Handle role change
   const handleRoleChange = async (userId: string, newRole: string) => {
     try {
+      // Check if we're using mock data
+      if (users.some((user) => user.id === "1" && user.email === "admin@tracklify.com")) {
+        // For mock data, just update the local state
+        setUsers((prev) => prev.map((user) => (user.id === userId ? { ...user, role: newRole } : user)))
+
+        toast({
+          title: "Role Updated",
+          description: "User role has been updated successfully (mock data).",
+        })
+        return
+      }
+
       const { error } = await supabase.from("profiles").update({ role: newRole }).eq("id", userId)
 
       if (error) {
@@ -124,6 +201,18 @@ export function UsersTable() {
   // Handle user deletion
   const handleDeleteUser = async (userId: string) => {
     try {
+      // Check if we're using mock data
+      if (users.some((user) => user.id === "1" && user.email === "admin@tracklify.com")) {
+        // For mock data, just update the local state
+        setUsers((prev) => prev.filter((user) => user.id !== userId))
+
+        toast({
+          title: "User Deleted",
+          description: "User has been deleted successfully (mock data).",
+        })
+        return
+      }
+
       // In a real app, you would need admin privileges to delete users
       const { error } = await supabase.auth.admin.deleteUser(userId)
 
