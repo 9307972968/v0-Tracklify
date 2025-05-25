@@ -1,6 +1,6 @@
 {
-  "buildCommand": "npm ci && npm run build",
-  "installCommand": "npm install --prefer-offline --no-audit --no-fund --loglevel=error",
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
   "framework": "nextjs",
   "outputDirectory": ".next",
   "regions": ["iad1"],
