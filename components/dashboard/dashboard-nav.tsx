@@ -3,43 +3,59 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { BarChart, Bell, Clock, Cog, Download, Home, Users } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import {
+  LayoutDashboard,
+  Activity,
+  Users,
+  Settings,
+  AlertTriangle,
+  BarChart3,
+  Monitor,
+  Download,
+  Shield,
+} from "lucide-react"
 
-const navItems = [
+const navigation = [
   {
-    title: "Dashboard",
+    name: "Overview",
     href: "/dashboard",
-    icon: Home,
+    icon: LayoutDashboard,
   },
   {
-    title: "Live Logs",
-    href: "/dashboard/logs",
-    icon: Clock,
+    name: "Live Logs",
+    href: "/dashboard/livelogs",
+    icon: Activity,
   },
   {
-    title: "Analytics",
+    name: "Devices",
+    href: "/dashboard/devices",
+    icon: Monitor,
+  },
+  {
+    name: "Analytics",
     href: "/dashboard/analytics",
-    icon: BarChart,
+    icon: BarChart3,
   },
   {
-    title: "Anomalies",
+    name: "Anomalies",
     href: "/dashboard/anomalies",
-    icon: Bell,
+    icon: AlertTriangle,
   },
   {
-    title: "Users",
+    name: "Users",
     href: "/dashboard/users",
     icon: Users,
   },
   {
-    title: "Agent",
+    name: "Agent Setup",
     href: "/dashboard/agent",
     icon: Download,
   },
   {
-    title: "Settings",
+    name: "Settings",
     href: "/dashboard/settings",
-    icon: Cog,
+    icon: Settings,
   },
 ]
 
@@ -47,22 +63,30 @@ export function DashboardNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="flex flex-col gap-2 p-4">
-      {navItems.map((item) => (
-        <Link
-          key={item.href}
-          href={item.href}
-          className={cn(
-            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-            pathname === item.href || pathname.startsWith(`${item.href}/`)
-              ? "bg-secondary text-foreground"
-              : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-          )}
-        >
-          <item.icon className="h-4 w-4" />
-          {item.title}
-        </Link>
-      ))}
-    </nav>
+    <div className="pb-12">
+      <div className="space-y-4 py-4">
+        <div className="px-3 py-2">
+          <div className="flex items-center gap-2 mb-4">
+            <Shield className="h-6 w-6" />
+            <h2 className="text-lg font-semibold tracking-tight">Tracklify</h2>
+          </div>
+          <div className="space-y-1">
+            {navigation.map((item) => (
+              <Button
+                key={item.name}
+                variant={pathname === item.href ? "secondary" : "ghost"}
+                className={cn("w-full justify-start", pathname === item.href && "bg-muted font-medium")}
+                asChild
+              >
+                <Link href={item.href}>
+                  <item.icon className="mr-2 h-4 w-4" />
+                  {item.name}
+                </Link>
+              </Button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
