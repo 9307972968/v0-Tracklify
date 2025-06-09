@@ -1,18 +1,20 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { createContext, useContext, useEffect, useState, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
-import type { User, Session } from "@supabase/supabase-js"
+import type { User, Session, AuthError } from "@supabase/supabase-js"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
-type SupabaseContextType = {
+interface SupabaseContextType {
   user: User | null
   session: Session | null
   isLoading: boolean
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>
-  signUp: (email: string, password: string, metadata?: { [key: string]: any }) => Promise<{ error: Error | null }>
+  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>
+  signUp: (email: string, password: string) => Promise<{ error: AuthError | null }>
   signOut: () => Promise<void>
+  resetPassword: (email: string) => Promise<{ error: AuthError | null }>
 }
 
 const SupabaseContext = createContext<SupabaseContextType | undefined>(undefined)
@@ -24,96 +26,170 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const supabase = createClient()
 
+  // Add refs to track auth state and prevent duplicate toasts
+  const authStateRef = useRef<{
+    signedIn: boolean
+    signedOut: boolean
+  }>({
+    signedIn: false,
+    signedOut: false,
+  })
+
   useEffect(() => {
-    const getSession = async () => {
-      setIsLoading(true)
+    // Get initial session
+    const getInitialSession = async () => {
       try {
-        const { data, error } = await supabase.auth.getSession()
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession()
+
         if (error) {
-          // If there's an auth error, clear the session
           console.error("Error getting session:", error)
-          await supabase.auth.signOut()
-          setSession(null)
-          setUser(null)
         } else {
-          setSession(data.session)
-          setUser(data.session?.user || null)
+          setSession(session)
+          setUser(session?.user ?? null)
+
+          // If we have a session on initial load, mark as signed in but don't show toast
+          if (session) {
+            authStateRef.current.signedIn = true
+          }
         }
       } catch (error) {
-        console.error("Error getting session:", error)
-        // If there's an exception, clear the session
-        await supabase.auth.signOut()
-        setSession(null)
-        setUser(null)
+        console.error("Error in getInitialSession:", error)
       } finally {
         setIsLoading(false)
       }
     }
 
-    getSession()
+    getInitialSession()
 
+    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "TOKEN_REFRESHED" || event === "SIGNED_IN") {
-        setSession(session)
-        setUser(session?.user || null)
-      } else if (event === "SIGNED_OUT") {
-        setSession(null)
-        setUser(null)
-      }
+      console.log("Auth state changed:", event, session?.user?.email)
 
-      // Only refresh the page for certain events to avoid unnecessary refreshes
-      if (["SIGNED_IN", "SIGNED_OUT", "USER_UPDATED"].includes(event)) {
-        router.refresh()
+      setSession(session)
+      setUser(session?.user ?? null)
+      setIsLoading(false)
+
+      // Handle SIGNED_IN event with protection against duplicates
+      if (event === "SIGNED_IN" && session) {
+        if (!authStateRef.current.signedIn) {
+          authStateRef.current.signedIn = true
+          authStateRef.current.signedOut = false
+          toast.success("Successfully logged in!")
+          router.push("/dashboard")
+        }
+      }
+      // Handle SIGNED_OUT event with protection against duplicates
+      else if (event === "SIGNED_OUT") {
+        if (!authStateRef.current.signedOut) {
+          authStateRef.current.signedOut = true
+          authStateRef.current.signedIn = false
+          toast.success("Successfully logged out!")
+          router.push("/login")
+        }
+      }
+      // Don't show toasts for token refreshes
+      else if (event === "TOKEN_REFRESHED") {
+        console.log("Token refreshed successfully")
       }
     })
 
     return () => {
       subscription.unsubscribe()
     }
-  }, [supabase, router])
+  }, [router, supabase.auth])
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      setIsLoading(true)
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
-      return { error }
+
+      if (error) {
+        toast.error(error.message)
+        return { error }
+      }
+
+      // Don't show toast here - it will be handled by the auth state change listener
+      return { error: null }
     } catch (error) {
       console.error("Sign in error:", error)
-      return { error: error as Error }
+      toast.error("An unexpected error occurred")
+      return { error: error as AuthError }
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const signUp = async (email: string, password: string, metadata?: { [key: string]: any }) => {
+  const signUp = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signUp({
+      setIsLoading(true)
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: metadata,
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
       })
-      return { error }
+
+      if (error) {
+        toast.error(error.message)
+        return { error }
+      }
+
+      if (data.user && !data.session) {
+        toast.success("Check your email for the confirmation link!")
+      }
+
+      return { error: null }
     } catch (error) {
       console.error("Sign up error:", error)
-      return { error: error as Error }
+      toast.error("An unexpected error occurred")
+      return { error: error as AuthError }
+    } finally {
+      setIsLoading(false)
     }
   }
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut()
-      router.push("/login")
+      setIsLoading(true)
+      const { error } = await supabase.auth.signOut()
+
+      if (error) {
+        console.error("Sign out error:", error)
+        toast.error("Error signing out")
+      }
+
+      // Don't show toast here - it will be handled by the auth state change listener
     } catch (error) {
       console.error("Sign out error:", error)
-      // Even if there's an error, we should clear the local state
-      setSession(null)
-      setUser(null)
-      router.push("/login")
+      toast.error("Error signing out")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const resetPassword = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/update-password`,
+      })
+
+      if (error) {
+        toast.error(error.message)
+        return { error }
+      }
+
+      toast.success("Password reset email sent!")
+      return { error: null }
+    } catch (error) {
+      console.error("Reset password error:", error)
+      toast.error("An unexpected error occurred")
+      return { error: error as AuthError }
     }
   }
 
@@ -124,6 +200,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     signIn,
     signUp,
     signOut,
+    resetPassword,
   }
 
   return <SupabaseContext.Provider value={value}>{children}</SupabaseContext.Provider>
