@@ -12,7 +12,7 @@ interface SupabaseContextType {
   session: Session | null
   isLoading: boolean
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>
-  signUp: (email: string, password: string) => Promise<{ error: AuthError | null }>
+  signUp: (email: string, password: string, metadata?: Record<string, any>) => Promise<{ error: AuthError | null }>
   signOut: () => Promise<void>
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>
 }
@@ -106,49 +106,72 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       setIsLoading(true)
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      console.log("[v0] Attempting sign in with email:", email)
+
+      const response = await fetch("/api/auth/signin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
       })
 
-      if (error) {
+      const data = await response.json()
+
+      if (!response.ok) {
+        const error: AuthError = {
+          name: "AuthError",
+          message: data.error || "Sign in failed",
+          status: response.status,
+        }
+        console.error("[v0] Sign in error:", error)
         toast.error(error.message)
         return { error }
       }
 
-      // Don't show toast here - it will be handled by the auth state change listener
+      console.log("[v0] Sign in successful")
       return { error: null }
     } catch (error) {
-      console.error("Sign in error:", error)
-      toast.error("An unexpected error occurred")
-      return { error: error as AuthError }
+      console.error("[v0] Sign in catch error:", error)
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred"
+      toast.error(errorMessage)
+      return { error: { name: "Error", message: errorMessage } as AuthError }
     } finally {
       setIsLoading(false)
     }
   }
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, metadata?: Record<string, any>) => {
     try {
       setIsLoading(true)
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
+      console.log("[v0] Attempting sign up with email:", email)
+
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, metadata }),
       })
 
-      if (error) {
+      const data = await response.json()
+
+      if (!response.ok) {
+        const error: AuthError = {
+          name: "AuthError",
+          message: data.error || "Sign up failed",
+          status: response.status,
+        }
+        console.error("[v0] Sign up error:", error)
         toast.error(error.message)
         return { error }
       }
 
-      if (data.user && !data.session) {
-        toast.success("Check your email for the confirmation link!")
-      }
+      console.log("[v0] Sign up successful, user:", data.user?.email)
+      toast.success("Check your email for the confirmation link!")
 
       return { error: null }
     } catch (error) {
-      console.error("Sign up error:", error)
-      toast.error("An unexpected error occurred")
-      return { error: error as AuthError }
+      console.error("[v0] Sign up catch error:", error)
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred"
+      toast.error(errorMessage)
+      return { error: { name: "Error", message: errorMessage } as AuthError }
     } finally {
       setIsLoading(false)
     }
@@ -163,8 +186,6 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
         console.error("Sign out error:", error)
         toast.error("Error signing out")
       }
-
-      // Don't show toast here - it will be handled by the auth state change listener
     } catch (error) {
       console.error("Sign out error:", error)
       toast.error("Error signing out")
